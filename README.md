@@ -19,7 +19,7 @@ GitHUB est organisé en "Repository", c'est à dire en répertoire (contenant lu
 1° - Créez vous un compte sur GitHub : https://github.com/  
 Si besoin, une vidéo pour vous aider à créer votre propre compte GitHUB : [Créer un compte GitHUB](https://docs.github.com/fr/get-started/onboarding/getting-started-with-your-github-account)  
 A noter que **si vous possédez déjà un compte GitHUB, vous pouvez le conserver pour réaliser cet atelier**. Pas besion d'en créer un nouveau.  
-Remarque importante : **Lors de votre inscription, utilisez une adresse mail valide. GitHUB n'accepte pas les adresses mails temporaires**  
+Remarque importante : **Lors de votre inscription, utilisez une adresse mail valide. GitHUB n'accepte pas les adresses mails temporaires**
 
 2° - Faites un Fork du Repository suivant : [https://github.com/OpenRSI/Flask_Projet_SQLite](https://github.com/OpenRSI/Flask_Projet_SQLite)  
 Voici une vidéo d'accompagnement pour vous aider dans les "Forks" : [Forker ce projet](https://youtu.be/p33-7XQ29zQ)    
