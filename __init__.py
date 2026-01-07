@@ -32,13 +32,16 @@ def authentification():
         password = request.form['password']
         
         # Vérification des deux comptes autorisés (Exercice 2)
-        if (username == 'admin' and password == 'password') or \
+       if (username == 'admin' and password == 'password') or \
            (username == 'user' and password == '12345'):
             session['authentifie'] = True
-            session['username'] = username  # On stocke le nom pour vérifier les droits plus tard
-            return redirect(url_for('lecture'))
-        else:
-            return render_template('formulaire_authentification.html', error=True)
+            session['username'] = username
+            
+            # Redirection différenciée
+            if username == 'admin':
+                return redirect(url_for('ReadBDD')) # Redirige l'admin vers la liste complète
+            else:
+                return redirect(url_for('hello_world')) # Redirige l'user vers l'accueil ou une autre page
 
     return render_template('formulaire_authentification.html', error=False)
 
