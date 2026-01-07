@@ -31,11 +31,11 @@ def authentification():
         username = request.form['username']
         password = request.form['password']
         
-        # Vérification Admin OU User
+        # Vérification des deux comptes autorisés (Exercice 2)
         if (username == 'admin' and password == 'password') or \
            (username == 'user' and password == '12345'):
             session['authentifie'] = True
-            session['user_role'] = username # Optionnel : pour distinguer le rôle
+            session['username'] = username  # On stocke le nom pour vérifier les droits plus tard
             return redirect(url_for('lecture'))
         else:
             return render_template('formulaire_authentification.html', error=True)
