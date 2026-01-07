@@ -32,7 +32,7 @@ def authentification():
         password = request.form['password']
         
         # Vérification des deux comptes autorisés (Exercice 2)
-       if (username == 'admin' and password == 'password') or \
+       if (username == 'admin' and password == 'password') or
            (username == 'user' and password == '12345'):
             session['authentifie'] = True
             session['username'] = username
