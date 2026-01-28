@@ -1,7 +1,7 @@
 import sqlite3
 import os
 
-# On force le travail dans le bon répertoire
+# On s'assure d'être dans le bon dossier
 path = os.path.dirname(os.path.abspath(__file__))
 os.chdir(path)
 
@@ -11,17 +11,16 @@ with open('schema.sql') as f:
 
 cur = connection.cursor()
 
-# Comptes par défaut
+# Comptes par défaut (Admin et Utilisateur)
 cur.execute("INSERT INTO clients (nom, prenom, username, password, role, adresse) VALUES (?, ?, ?, ?, ?, ?)",
-            ('Admin', 'System', 'admin', 'password', 'admin', 'Local Admin'))
+            ('Admin', 'System', 'admin', 'password', 'admin', 'Bureau Central'))
 cur.execute("INSERT INTO clients (nom, prenom, username, password, role, adresse) VALUES (?, ?, ?, ?, ?, ?)",
-            ('Dupont', 'Jean', 'user', '12345', 'user', '123 Rue de Paris'))
+            ('Dupont', 'Jean', 'user', '12345', 'user', '10 Rue de la Paix'))
 
-# Stock initial de livres
+# Catalogue initial
 cur.execute("INSERT INTO livres (titre, auteur, stock) VALUES (?, ?, ?)", ('Le Petit Prince', 'Saint-Exupéry', 5))
 cur.execute("INSERT INTO livres (titre, auteur, stock) VALUES (?, ?, ?)", ('1984', 'George Orwell', 2))
-cur.execute("INSERT INTO livres (titre, auteur, stock) VALUES (?, ?, ?)", ('Le Cid', 'Corneille', 1))
 
 connection.commit()
 connection.close()
-print(f"Base de données créée avec succès dans {path}")
+print("Base de données initialisée avec succès.")
