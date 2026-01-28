@@ -1,95 +1,92 @@
-from flask import Flask, render_template, jsonify, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, flash
 import sqlite3
 
-app = Flask(__name__)                                                                                                                  
-app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'  # Clé secrète pour les sessions
+app = Flask(__name__)
+app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
 
-# Fonction pour vérifier si l'utilisateur est connecté
-def est_authentifie():
-    return session.get('authentifie')
+def get_db_connection():
+    conn = sqlite3.connect('database.db')
+    conn.row_factory = sqlite3.Row
+    return conn
 
-@app.route('/')
-def hello_world():
-    return render_template('hello.html')
-
-@app.route('/lecture')
-def lecture():
-    if not est_authentifie():
-        return redirect(url_for('authentification'))
-    return "<h2>Bravo, vous êtes authentifié</h2>"
-
+# --- AUTHENTIFICATION ---
 @app.route('/authentification', methods=['GET', 'POST'])
 def authentification():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
         
-        # EXERCICE 2 : Gestion des deux types de comptes
-        if (username == 'admin' and password == 'password') or \
-           (username == 'user' and password == '12345'):
-            
-            session['authentifie'] = True
-            session['username'] = username
-            
-            # Redirection selon le rôle
-            if username == 'admin':
-                return redirect(url_for('ReadBDD')) # Admin voit tout
-            else:
-                return redirect(url_for('hello_world')) # User va à l'accueil
-        else:
-            return render_template('formulaire_authentification.html', error=True)
+        conn = get_db_connection()
+        user = conn.execute('SELECT * FROM clients WHERE username = ? AND password = ?', (username, password)).fetchone()
+        conn.close()
 
+        if user:
+            session['authentifie'] = True
+            session['user_id'] = user['id']
+            session['username'] = user['username']
+            session['role'] = user['role']
+            return redirect(url_for('index'))
+        return render_template('formulaire_authentification.html', error=True)
     return render_template('formulaire_authentification.html', error=False)
 
-# EXERCICE 1 : Recherche par nom
-@app.route('/fiche_nom/<nom>')
-def fiche_nom(nom):
-    if not est_authentifie():
-        return redirect(url_for('authentification'))
-    
-    # EXERCICE 2 : Restriction d'accès (seul 'user' peut chercher par nom)
-    if session.get('username') != 'user':
-        return "Accès refusé : Cette zone est réservée à l'utilisateur 'user'.", 403
-
-    conn = sqlite3.connect('database.db')
-    cursor = conn.cursor()
-    cursor.execute('SELECT * FROM clients WHERE nom = ?', (nom,))
-    data = cursor.fetchall()
+@app.route('/')
+def index():
+    conn = get_db_connection()
+    livres = conn.execute('SELECT * FROM livres').fetchall()
     conn.close()
-    
-    return render_template('read_data.html', data=data)
+    return render_template('read_data.html', data=livres, titre_page="Bibliothèque")
 
-@app.route('/fiche_client/<int:post_id>')
-def Readfiche(post_id):
-    conn = sqlite3.connect('database.db')
-    cursor = conn.cursor()
-    cursor.execute('SELECT * FROM clients WHERE id = ?', (post_id,))
-    data = cursor.fetchall()
-    conn.close()
-    return render_template('read_data.html', data=data)
-
-@app.route('/consultation/')
-def ReadBDD():
-    conn = sqlite3.connect('database.db')
-    cursor = conn.cursor()
-    cursor.execute('SELECT * FROM clients;')
-    data = cursor.fetchall()
-    conn.close()
-    return render_template('read_data.html', data=data)
-
-@app.route('/enregistrer_client', methods=['GET', 'POST'])
-def enregistrer_client():
+# --- GESTION DES LIVRES (ADMIN) ---
+@app.route('/ajouter_livre', methods=['GET', 'POST'])
+def ajouter_livre():
+    if session.get('role') != 'admin':
+        return "Accès interdit", 403
     if request.method == 'POST':
-        nom = request.form['nom']
-        prenom = request.form['prenom']
-        conn = sqlite3.connect('database.db')
-        cursor = conn.cursor()
-        # Insertion simplifiée
-        cursor.execute('INSERT INTO clients (nom, prenom, adresse) VALUES (?, ?, ?)', (nom, prenom, "Adresse par défaut"))
+        titre = request.form['titre']
+        auteur = request.form['auteur']
+        stock = request.form['stock']
+        conn = get_db_connection()
+        conn.execute('INSERT INTO livres (titre, auteur, stock) VALUES (?, ?, ?)', (titre, auteur, stock))
         conn.commit()
         conn.close()
-        return redirect(url_for('ReadBDD'))
-    return render_template('formulaire.html')
+        return redirect(url_for('index'))
+    return render_template('formulaire.html') # Réutilise ton formulaire en changeant les labels
+
+@app.route('/supprimer_livre/<int:id>')
+def supprimer_livre(id):
+    if session.get('role') != 'admin':
+        return "Accès interdit", 403
+    conn = get_db_connection()
+    conn.execute('DELETE FROM livres WHERE id = ?', (id,))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('index'))
+
+# --- RECHERCHE ET EMPRUNT (USER) ---
+@app.route('/recherche', methods=['POST'])
+def recherche():
+    query = request.form.get('query')
+    conn = get_db_connection()
+    livres = conn.execute("SELECT * FROM livres WHERE titre LIKE ?", ('%' + query + '%',)).fetchall()
+    conn.close()
+    return render_template('read_data.html', data=livres)
+
+@app.route('/emprunter/<int:id_livre>')
+def emprunter(id_livre):
+    if not session.get('authentifie'):
+        return redirect(url_for('authentification'))
+    
+    conn = get_db_connection()
+    livre = conn.execute('SELECT stock FROM livres WHERE id = ?', (id_livre,)).fetchone()
+    
+    if livre and livre['stock'] > 0:
+        # 1. Créer l'emprunt
+        conn.execute('INSERT INTO emprunts (id_client, id_livre) VALUES (?, ?)', (session['user_id'], id_livre))
+        # 2. Diminuer le stock
+        conn.execute('UPDATE livres SET stock = stock - 1 WHERE id = ?', (id_livre,))
+        conn.commit()
+    conn.close()
+    return redirect(url_for('index'))
 
 if __name__ == "__main__":
     app.run(debug=True)
