@@ -2,6 +2,7 @@ DROP TABLE IF EXISTS emprunts;
 DROP TABLE IF EXISTS livres;
 DROP TABLE IF EXISTS clients;
 
+-- Table des utilisateurs avec rôles et adresse
 CREATE TABLE clients (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nom TEXT NOT NULL,
@@ -9,9 +10,10 @@ CREATE TABLE clients (
     username TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
     role TEXT NOT NULL, -- 'admin' ou 'user'
-    adresse TEXT
+    adresse TEXT -- Optionnel pour la bibliothèque
 );
 
+-- Table des livres avec gestion des stocks
 CREATE TABLE livres (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     titre TEXT NOT NULL,
@@ -19,6 +21,7 @@ CREATE TABLE livres (
     stock INTEGER NOT NULL DEFAULT 1
 );
 
+-- Table pour suivre les emprunts
 CREATE TABLE emprunts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     id_client INTEGER,
