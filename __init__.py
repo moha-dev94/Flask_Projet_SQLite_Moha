@@ -5,7 +5,8 @@ app = Flask(__name__)
 app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
 
 def get_db_connection():
-    conn = sqlite3.connect('database.db')
+    # Utilise le chemin absolu pour être sûr de taper dans la bonne base
+    conn = sqlite3.connect('/home/ennadifi/www/flask-app/database.db')
     conn.row_factory = sqlite3.Row
     return conn
 
