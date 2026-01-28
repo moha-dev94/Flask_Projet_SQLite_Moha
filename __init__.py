@@ -6,7 +6,6 @@ app = Flask(__name__)
 app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
 
 def get_db_connection():
-    # Chemin absolu pour éviter les erreurs sur Alwaysdata
     db_path = os.path.join(os.path.dirname(__file__), 'database.db')
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
@@ -28,6 +27,7 @@ def authentification():
         user = conn.execute('SELECT * FROM clients WHERE username = ? AND password = ?', (username, password)).fetchone()
         conn.close()
         if user:
+            session.clear()
             session['authentifie'] = True
             session['user_id'] = user['id']
             session['username'] = user['username']
@@ -41,20 +41,22 @@ def deconnexion():
     session.clear()
     return redirect(url_for('index'))
 
-@app.route('/emprunter/<int:id_livre>')
-def emprunter(id_livre):
-    if not session.get('authentifie'):
-        return redirect(url_for('authentification'))
-    
-    conn = get_db_connection()
-    livre = conn.execute('SELECT stock FROM livres WHERE id = ?', (id_livre,)).fetchone()
-    
-    if livre and livre['stock'] > 0:
-        conn.execute('INSERT INTO emprunts (id_client, id_livre) VALUES (?, ?)', (session['user_id'], id_livre))
-        conn.execute('UPDATE livres SET stock = stock - 1 WHERE id = ?', (id_livre,))
+# --- GESTION DES LIVRES ---
+
+@app.route('/ajouter_livre', methods=['GET', 'POST'])
+def ajouter_livre():
+    if session.get('role') != 'admin':
+        return "Accès interdit", 403
+    if request.method == 'POST':
+        titre = request.form['titre']
+        auteur = request.form['auteur']
+        stock = request.form['stock']
+        conn = get_db_connection()
+        conn.execute('INSERT INTO livres (titre, auteur, stock) VALUES (?, ?, ?)', (titre, auteur, stock))
         conn.commit()
-    conn.close()
-    return redirect(url_for('index'))
+        conn.close()
+        return redirect(url_for('index'))
+    return render_template('formulaire_livre.html')
 
 @app.route('/supprimer_livre/<int:id>')
 def supprimer_livre(id):
@@ -63,6 +65,48 @@ def supprimer_livre(id):
     conn = get_db_connection()
     conn.execute('DELETE FROM livres WHERE id = ?', (id,))
     conn.commit()
+    conn.close()
+    return redirect(url_for('index'))
+
+# --- GESTION DES UTILISATEURS ---
+
+@app.route('/utilisateurs')
+def liste_utilisateurs():
+    if session.get('role') != 'admin':
+        return "Accès interdit", 403
+    conn = get_db_connection()
+    users = conn.execute('SELECT * FROM clients').fetchall()
+    conn.close()
+    return render_template('gestion_users.html', users=users)
+
+@app.route('/ajouter_utilisateur', methods=['GET', 'POST'])
+def ajouter_utilisateur():
+    if session.get('role') != 'admin':
+        return "Accès interdit", 403
+    if request.method == 'POST':
+        nom = request.form['nom']
+        prenom = request.form['prenom']
+        username = request.form['username']
+        password = request.form['password']
+        role = request.form['role']
+        conn = get_db_connection()
+        conn.execute('INSERT INTO clients (nom, prenom, username, password, role) VALUES (?, ?, ?, ?, ?)',
+                     (nom, prenom, username, password, role))
+        conn.commit()
+        conn.close()
+        return redirect(url_for('liste_utilisateurs'))
+    return render_template('formulaire_user.html')
+
+@app.route('/emprunter/<int:id_livre>')
+def emprunter(id_livre):
+    if not session.get('authentifie'):
+        return redirect(url_for('authentification'))
+    conn = get_db_connection()
+    livre = conn.execute('SELECT stock FROM livres WHERE id = ?', (id_livre,)).fetchone()
+    if livre and livre['stock'] > 0:
+        conn.execute('INSERT INTO emprunts (id_client, id_livre) VALUES (?, ?)', (session['user_id'], id_livre))
+        conn.execute('UPDATE livres SET stock = stock - 1 WHERE id = ?', (id_livre,))
+        conn.commit()
     conn.close()
     return redirect(url_for('index'))
 
