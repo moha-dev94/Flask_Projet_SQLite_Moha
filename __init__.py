@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session
 import sqlite3
 import os
 
@@ -10,26 +10,7 @@ def get_db_connection():
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
-# Page pour lister les utilisateurs (Réservé Admin)
-@app.route('/utilisateurs')
-def liste_utilisateurs():
-    if session.get('role') != 'admin':
-        return "Accès interdit", 403
-    conn = get_db_connection()
-    users = conn.execute('SELECT * FROM clients').fetchall()
-    conn.close()
-    return render_template('gestion_users.html', users=users)
 
-# Route pour supprimer un utilisateur
-@app.route('/supprimer_utilisateur/<int:id>')
-def supprimer_utilisateur(id):
-    if session.get('role') != 'admin':
-        return "Accès interdit", 403
-    conn = get_db_connection()
-    conn.execute('DELETE FROM clients WHERE id = ?', (id,))
-    conn.commit()
-    conn.close()
-    return redirect(url_for('liste_utilisateurs'))
 @app.route('/')
 def index():
     conn = get_db_connection()
@@ -60,7 +41,7 @@ def deconnexion():
     session.clear()
     return redirect(url_for('index'))
 
-# --- GESTION DES LIVRES ---
+# --- GESTION ADMIN ---
 
 @app.route('/ajouter_livre', methods=['GET', 'POST'])
 def ajouter_livre():
@@ -77,18 +58,6 @@ def ajouter_livre():
         return redirect(url_for('index'))
     return render_template('formulaire_livre.html')
 
-@app.route('/supprimer_livre/<int:id>')
-def supprimer_livre(id):
-    if session.get('role') != 'admin':
-        return "Accès interdit", 403
-    conn = get_db_connection()
-    conn.execute('DELETE FROM livres WHERE id = ?', (id,))
-    conn.commit()
-    conn.close()
-    return redirect(url_for('index'))
-
-# --- GESTION DES UTILISATEURS ---
-
 @app.route('/utilisateurs')
 def liste_utilisateurs():
     if session.get('role') != 'admin':
@@ -98,23 +67,7 @@ def liste_utilisateurs():
     conn.close()
     return render_template('gestion_users.html', users=users)
 
-@app.route('/ajouter_utilisateur', methods=['GET', 'POST'])
-def ajouter_utilisateur():
-    if session.get('role') != 'admin':
-        return "Accès interdit", 403
-    if request.method == 'POST':
-        nom = request.form['nom']
-        prenom = request.form['prenom']
-        username = request.form['username']
-        password = request.form['password']
-        role = request.form['role']
-        conn = get_db_connection()
-        conn.execute('INSERT INTO clients (nom, prenom, username, password, role) VALUES (?, ?, ?, ?, ?)',
-                     (nom, prenom, username, password, role))
-        conn.commit()
-        conn.close()
-        return redirect(url_for('liste_utilisateurs'))
-    return render_template('formulaire_user.html')
+# --- ACTIONS UTILISATEUR ---
 
 @app.route('/emprunter/<int:id_livre>')
 def emprunter(id_livre):
