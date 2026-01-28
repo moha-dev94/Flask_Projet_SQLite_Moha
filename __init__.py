@@ -65,7 +65,7 @@ def liste_utilisateurs():
     conn = get_db_connection()
     users = conn.execute('SELECT * FROM clients').fetchall()
     conn.close()
-    return render_template('templates/gestion_users.html', users=users)
+    return render_template('gestion_users.html', users=users)
 
 # --- ACTIONS UTILISATEUR ---
 
